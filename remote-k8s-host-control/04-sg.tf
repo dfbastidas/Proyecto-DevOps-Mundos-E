@@ -11,6 +11,14 @@ resource "aws_security_group" "remote-host-control-sg" {
   }
 
   ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Acceso a través del puerto 8080"
+  }
+
+  ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -23,6 +31,8 @@ resource "aws_security_group" "remote-host-control-sg" {
     protocol         = "-1"
     cidr_blocks      = ["0.0.0.0/0"]
   }
+
+
 
   tags = {
     Name = "${var.server_name}-sg"
