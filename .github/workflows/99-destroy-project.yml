@@ -1,4 +1,4 @@
-name: 04 Deploy Project
+name: 99 Destroy project
 
 on:
   workflow_dispatch:
