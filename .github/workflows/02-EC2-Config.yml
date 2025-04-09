@@ -2,10 +2,6 @@ name: EC2 Config
 
 on:
   workflow_dispatch:
-    inputs:
-      ec2_dns:
-        description: 'EC2 DNS (public hostname or IP)'
-        required: true
 
 jobs:
   ec2_config:
@@ -13,17 +9,39 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
+      - name: Install Terraform
+        env:
+          TERRAFORM_VERSION: "1.10.5"
+        run: |
+          tf_version=$TERRAFORM_VERSION
+          wget https://releases.hashicorp.com/terraform/"$tf_version"/terraform_"$tf_version"_linux_amd64.zip
+          unzip terraform_"$tf_version"_linux_amd64.zip
+          sudo mv terraform /usr/local/bin/
+
+      - name: Terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform init -input=false
+
+      - name: Get EC2 DNS from Terraform output
+        id: get_dns
+        run: |
+          EC2_DNS=$(terraform output -raw server_public_dns)
+          echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
+          echo "::set-output name=ec2_dns::$EC2_DNS"
+
       - name: Config SSH
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -H ${{ github.event.inputs.ec2_dns }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H $EC2_DNS >> ~/.ssh/known_hosts
 
       - name: Config AWS CLI on EC2
         run: |
-          ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ github.event.inputs.ec2_dns }} << 'EOF'
+          ssh -i private_key.pem ${{ secrets.EC2_USER }}@$EC2_DNS << 'EOF'
             aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws configure set region us-east-1

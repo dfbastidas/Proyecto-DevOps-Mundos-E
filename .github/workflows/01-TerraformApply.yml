@@ -30,7 +30,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init -input=false
 
-      - name: Terraform validation
+      - name: Terraform validate
         run: terraform validate
 
       - name: Terraform apply
@@ -38,18 +38,3 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve -input=false
-
-      - name: Get EC2 DNS
-        id: get_dns
-        run: |
-          EC2_DNS=$(terraform output -raw server_public_dns)
-          echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
-          echo "::set-output name=ec2_dns::$EC2_DNS"
-
-      - name: Trigger EC2 Config Workflow
-        uses: peter-evans/workflow-dispatch@v1
-        with:
-          workflow: 02-EC2-Config.yml
-          ref: main
-          inputs: |
-            ec2_dns: ${{ env.EC2_DNS }}
