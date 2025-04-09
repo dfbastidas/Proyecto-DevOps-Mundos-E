@@ -9,6 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
+      - name: Create Public Access Key
+        run: echo "${{ secrets.PUBLIC_ACCESS_KEY }}" > remote-host-control.pub
+
       - name: Install Terraform
         env:
           TERRAFORM_VERSION: "1.10.5"
@@ -27,7 +30,7 @@ jobs:
       - name: Get EC2 DNS from Terraform output
         id: get_dns
         run: |
-          EC2_DNS=$(terraform output -raw server_public_dns)
+          EC2_DNS=$(terraform output -raw remote_k8s_host_public_dns)
           echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
           echo "::set-output name=ec2_dns::$EC2_DNS"
 
