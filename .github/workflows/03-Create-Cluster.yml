@@ -74,3 +74,34 @@ jobs:
             --ssh-public-key ~/.ssh/id_rsa.pub \
             --managed=false 
           EOF
+      - name: Attach EC2 permissions to EKS node role
+        run: |
+          ssh -i private_key.pem ${{ secrets.EC2_USER }}@$EC2_DNS << 'EOF'
+            echo '{
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:CreateVolume",
+                    "ec2:DeleteVolume",
+                    "ec2:AttachVolume",
+                    "ec2:DetachVolume",
+                    "ec2:DescribeVolumes",
+                    "ec2:CreateTags"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }' > volume-policy.json
+            ROLE_NAME=$(aws iam list-roles \
+              --query 'Roles[?contains(RoleName, `eks-mundos-e-nodegroup-work`) == `true`].RoleName' \
+              --output text)
+  
+            echo "Detected Role: $ROLE_NAME"
+  
+            aws iam put-role-policy \
+              --role-name "$ROLE_NAME" \
+              --policy-name EBSVolumeAccessPolicy \
+              --policy-document file://volume-policy.json
+          EOF
