@@ -15,7 +15,7 @@ resource "aws_security_group" "remote-host-control-sg" {
     to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Acceso a través del puerto 8080"
+    description = "Access through port 8080"
   }
 
   ingress {
