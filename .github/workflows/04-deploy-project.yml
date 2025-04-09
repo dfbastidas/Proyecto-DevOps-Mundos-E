@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  create_eks_cluster:
+  deploy_project:
     runs-on: ubuntu-latest
     steps:
       - name: Create Public Access Key
@@ -26,14 +26,14 @@ jobs:
         run: terraform init -input=false
 
       - name: Get EC2 DNS from Terraform output
+        id: get_dns
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        id: get_dns
         run: |
           EC2_DNS=$(terraform output -raw remote_k8s_host_public_dns)
           echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
-          echo "::set-output name=ec2_dns::$EC2_DNS"
+          echo "ec2_dns=$EC2_DNS" >> $GITHUB_OUTPUT
 
       - name: Config SSH
         run: |
@@ -41,18 +41,18 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -H $EC2_DNS >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ env.EC2_DNS }} >> ~/.ssh/known_hosts
 
       - name: Clone Repo And Execute Pods
         run: |
-          ssh -i private_key.pem ${{ secrets.EC2_USER }}@$EC2_DNS << 'EOF'
+          ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF'
             git clone https://github.com/dfbastidas/manifiestos
             kubectl apply -f manifiestos/manifiesto_nginx.yml
           EOF
 
       - name: Config Ingress Controller
         run: |
-          ssh -i private_key.pem ${{ secrets.EC2_USER }}@$EC2_DNS << 'EOF'
+          ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF'
             helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
             helm repo update
             helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
