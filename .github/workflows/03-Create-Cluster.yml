@@ -68,6 +68,5 @@ jobs:
             --nodes-max 3 \
             --ssh-access \
             --ssh-public-key ~/.ssh/id_rsa.pub \
-            --managed=false \
-            --instance-role-name ec2-admin
+            --managed=false 
           EOF
