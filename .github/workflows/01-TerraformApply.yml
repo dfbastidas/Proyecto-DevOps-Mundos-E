@@ -21,7 +21,7 @@ jobs:
           unzip terraform_"$tf_version"_linux_amd64.zip
           sudo mv terraform /usr/local/bin/
 
-      - name: Verify Terraform version
+      - name: Terraform version
         run: terraform --version
 
       - name: Terraform init
@@ -30,7 +30,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init -input=false
 
-      - name: Terraform validation
+      - name: Terraform validate
         run: terraform validate
 
       - name: Terraform apply
@@ -38,6 +38,17 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve -input=false
+
+      - name: Save EC2 DNS as artifact
+        run: |
+          terraform output -raw server_public_dns > ec2_dns.txt
+        shell: bash
+
+      - name: Upload DNS artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ec2-dns
+          path: ec2_dns.txt
 
       - name: Trigger EC2 Config Workflow
         if: success()
