@@ -4,9 +4,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy_project:
+  create_eks_cluster:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v1
+
       - name: Create Public Access Key
         run: echo "${{ secrets.PUBLIC_ACCESS_KEY }}" > remote-host-control.pub
 
@@ -26,18 +29,14 @@ jobs:
         run: terraform init -input=false
 
       - name: Get EC2 DNS from Terraform output
-        id: get_dns
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        id: get_dns
         run: |
-          OUTPUT=$(terraform output -raw remote_k8s_host_public_dns 2>/dev/null || true)
-          if [ -z "$OUTPUT" ]; then
-            echo "No DNS output found. Is the output defined and applied?"
-            exit 1
-          fi
-          echo "EC2_DNS=$OUTPUT" >> $GITHUB_ENV
-          echo "ec2_dns=$OUTPUT" >> $GITHUB_OUTPUT
+          EC2_DNS=$(terraform output -raw remote_k8s_host_public_dns)
+          echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
+          echo "::set-output name=ec2_dns::$EC2_DNS"
 
       - name: Config SSH
         run: |
@@ -45,7 +44,18 @@ jobs:
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -H ${{ env.EC2_DNS }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H $EC2_DNS >> ~/.ssh/known_hosts
+
+      - name: Generate SSH Key and Create Cluster
+        run: |
+          ssh -i private_key.pem ${{ secrets.EC2_USER }}@$EC2_DNS << 'EOF'
+            ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+            eksctl create cluster \
+            --name eks-mundos-e \
+            --without-nodegroup \
+            --region us-east-1 \
+            --zones us-east-1b,us-east-1a
+          EOF
 
       - name: Clone Repo And Execute Pods
         run: |
