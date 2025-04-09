@@ -1,3 +1,11 @@
+terraform {
+  backend "s3"{
+    bucket                 = "pin-2404"
+    region                 = "us-east-1"
+    key                    = "terraform.tfstate"
+  }
+}
+
 ### module ###
 module "remote_k8s_host" {
   source = "./remote-k8s-host-control"
