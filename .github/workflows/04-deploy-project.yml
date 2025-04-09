@@ -46,17 +46,6 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H $EC2_DNS >> ~/.ssh/known_hosts
 
-      - name: Generate SSH Key and Create Cluster
-        run: |
-          ssh -i private_key.pem ${{ secrets.EC2_USER }}@$EC2_DNS << 'EOF'
-            ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
-            eksctl create cluster \
-            --name eks-mundos-e \
-            --without-nodegroup \
-            --region us-east-1 \
-            --zones us-east-1b,us-east-1a
-          EOF
-
       - name: Clone Repo And Execute Pods
         run: |
           ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF'
