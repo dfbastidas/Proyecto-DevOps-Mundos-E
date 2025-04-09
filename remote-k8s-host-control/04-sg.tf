@@ -1,5 +1,5 @@
 ####### SG #######
-resource "aws_security_group" "apache-server-sg" {
+resource "aws_security_group" "remote-host-control-sg" {
   name        = "${var.server_name}-sg"
   description = "Security group allowing SSH and HTTP access"
 
