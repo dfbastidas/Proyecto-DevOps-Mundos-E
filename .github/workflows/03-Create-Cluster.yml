@@ -104,4 +104,6 @@ jobs:
               --role-name "$ROLE_NAME" \
               --policy-name EBSVolumeAccessPolicy \
               --policy-document file://volume-policy.json
+          
+            rm volume-policy.json
           EOF
