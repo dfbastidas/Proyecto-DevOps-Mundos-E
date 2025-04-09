@@ -45,7 +45,7 @@ jobs:
         shell: bash
 
       - name: Upload DNS artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.3.4
         with:
           name: ec2-dns
           path: ec2_dns.txt
