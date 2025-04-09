@@ -1,4 +1,4 @@
-name: EC2 Config
+name: 02 EC2 Config
 
 on:
   workflow_dispatch:
