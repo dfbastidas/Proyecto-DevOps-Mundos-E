@@ -2,6 +2,9 @@ name: 02 EC2 Config
 
 on:
   workflow_dispatch:
+    workflows: ["01 Terraform Apply"]
+    types:
+      - completed
 
 jobs:
   ec2_config:
