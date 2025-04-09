@@ -1,4 +1,9 @@
 ### Resource ###
+resource "aws_iam_instance_profile" "ec2_instance_profile" {
+  name = "ec2-instance-profile"
+  role = "ec2-admin"
+}
+
 resource "aws_instance" "remote-host-control" {
   ami = var.ami_id #ubuntu
   instance_type = var.instance_type
@@ -13,6 +18,8 @@ resource "aws_instance" "remote-host-control" {
   vpc_security_group_ids = [
     aws_security_group.remote-host-control-sg.id
   ]
+
+  iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
 
   tags = {
     Name = var.server_name
