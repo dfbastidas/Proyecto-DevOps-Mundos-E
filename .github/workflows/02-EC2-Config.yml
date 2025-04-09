@@ -2,6 +2,10 @@ name: EC2 Config
 
 on:
   workflow_dispatch:
+    inputs:
+      ec2_dns:
+        description: 'EC2 DNS (public hostname or IP)'
+        required: true
 
 jobs:
   ec2_config:
@@ -9,28 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Download DNS artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ec2-dns
-
-      - name: Read EC2 DNS
-        id: read_dns
-        run: |
-          EC2_HOST=$(cat ec2_dns.txt)
-          echo "EC2_HOST=$EC2_HOST" >> $GITHUB_ENV
-
       - name: Config SSH
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
           chmod 600 private_key.pem
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ github.event.inputs.ec2_dns }} >> ~/.ssh/known_hosts
 
       - name: Config AWS CLI on EC2
         run: |
-          ssh -i private_key.pem ${{ secrets.EC2_USER }}@$EC2_HOST << 'EOF'
+          ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ github.event.inputs.ec2_dns }} << 'EOF'
             aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
             aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws configure set region us-east-1

@@ -21,7 +21,7 @@ jobs:
           unzip terraform_"$tf_version"_linux_amd64.zip
           sudo mv terraform /usr/local/bin/
 
-      - name: Terraform version
+      - name: Verify Terraform version
         run: terraform --version
 
       - name: Terraform init
@@ -30,7 +30,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init -input=false
 
-      - name: Terraform validate
+      - name: Terraform validation
         run: terraform validate
 
       - name: Terraform apply
@@ -39,19 +39,17 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve -input=false
 
-      - name: Save EC2 DNS as artifact
+      - name: Get EC2 DNS
+        id: get_dns
         run: |
-          terraform output -raw server_public_dns > ec2_dns.txt
-        shell: bash
-
-      - name: Upload DNS artifact
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: ec2-dns
-          path: ec2_dns.txt
+          EC2_DNS=$(terraform output -raw server_public_dns)
+          echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
+          echo "::set-output name=ec2_dns::$EC2_DNS"
 
       - name: Trigger EC2 Config Workflow
-        if: success()
         uses: peter-evans/workflow-dispatch@v1
         with:
           workflow: 02-EC2-Config.yml
+          ref: main
+          inputs: |
+            ec2_dns: ${{ env.EC2_DNS }}
