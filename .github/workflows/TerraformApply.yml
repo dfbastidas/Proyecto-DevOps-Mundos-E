@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Create Public Access Key
-        run: echo "${{ secrets.PUBLIC_ACCESS_KEY }}" > docker-server.pub
+        run: echo "${{ secrets.PUBLIC_ACCESS_KEY }}" > remote-host-control.pub
 
       - name: Install Terraform
         env:
