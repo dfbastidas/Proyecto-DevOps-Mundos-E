@@ -31,9 +31,13 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          EC2_DNS=$(terraform output -raw remote_k8s_host_public_dns)
-          echo "EC2_DNS=$EC2_DNS" >> $GITHUB_ENV
-          echo "ec2_dns=$EC2_DNS" >> $GITHUB_OUTPUT
+          OUTPUT=$(terraform output -raw remote_k8s_host_public_dns 2>/dev/null || true)
+          if [ -z "$OUTPUT" ]; then
+            echo "No DNS output found. Is the output defined and applied?"
+            exit 1
+          fi
+          echo "EC2_DNS=$OUTPUT" >> $GITHUB_ENV
+          echo "ec2_dns=$OUTPUT" >> $GITHUB_OUTPUT
 
       - name: Config SSH
         run: |
