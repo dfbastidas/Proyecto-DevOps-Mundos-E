@@ -55,7 +55,7 @@ jobs:
             REGION="us-east-1"
             MAX_RETRIES=10
             COUNT=1
-            TIME_LIMIT=600
+            TIME_LIMIT=300
 
             function clean_nodes() {
               echo "🔍 Iteración \$COUNT — limpiando nodos con pods en el cluster..."
