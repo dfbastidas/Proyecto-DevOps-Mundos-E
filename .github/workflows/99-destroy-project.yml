@@ -47,7 +47,7 @@ jobs:
 
       - name: Destroy EKS Cluster
         run: |
-          ssh -t -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF'
+          ssh -t -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF' || true
           #!/bin/bash
           set -e
 
@@ -89,7 +89,7 @@ jobs:
 
             if timeout "$TIME_LIMIT" eksctl delete cluster --name "$CLUSTER_NAME" --region "$REGION"; then
               echo "✅ Cluster eliminado exitosamente tras $COUNT intento(s)."
-              exit 0
+              exit 0  # Forzamos exit code 0 aquí
             else
               echo "❌ Intento $COUNT fallido o sin respuesta en $TIME_LIMIT segundos."
               COUNT=$((COUNT + 1))
