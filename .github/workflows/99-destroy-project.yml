@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  create_eks_cluster:
+  destroy_cluster:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
