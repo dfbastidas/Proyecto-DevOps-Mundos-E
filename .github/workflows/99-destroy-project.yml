@@ -17,9 +17,8 @@ jobs:
         env:
           TERRAFORM_VERSION: "1.10.5"
         run: |
-          tf_version=$TERRAFORM_VERSION
-          wget https://releases.hashicorp.com/terraform/"$tf_version"/terraform_"$tf_version"_linux_amd64.zip
-          unzip terraform_"$tf_version"_linux_amd64.zip
+          wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+          unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
           sudo mv terraform /usr/local/bin/
 
       - name: Terraform init
@@ -46,22 +45,62 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -H $EC2_DNS >> ~/.ssh/known_hosts
 
-      - name: Delete Pods
+      - name: Destroy EKS Cluster
         run: |
           ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF'
-            kubectl delete -f manifiestos/manifiesto_nginx.yml
-            kubectl delete -f manifiestos/ingress.yml
-          EOF
+            #!/bin/bash
+            set -e
 
-      - name: Delete Nodes
-        run: |
-          ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF'
-            aws cloudformation delete-stack --stack-name eksctl-eks-mundos-e-nodegroup-workers-nodes
-          EOF
+            CLUSTER_NAME="eks-mundos-e"
+            REGION="us-east-1"
+            MAX_RETRIES=10
+            COUNT=1
+            TIME_LIMIT=600
 
-      - name: Delete Cluster
-        run: |
-          ssh -i private_key.pem ${{ secrets.EC2_USER }}@${{ env.EC2_DNS }} << 'EOF'
-            aws cloudformation delete-stack --stack-name eksctl-eks-mundos-e-cluster
-          EOF
+            function clean_nodes() {
+              echo "🔍 Iteración \$COUNT — limpiando nodos con pods en el cluster..."
 
+              NODOS=$(kubectl get pods --all-namespaces -o json | jq -r '
+                .items[] | select(.spec.nodeName != null) | .spec.nodeName' | sort -u)
+
+              for NODE in \$NODOS; do
+                echo "🧹 Procesando nodo: \$NODE"
+
+                POD_LIST=$(kubectl get pods --all-namespaces --field-selector spec.nodeName=\$NODE -o jsonpath="{range .items[*]}{.metadata.namespace}:{.metadata.name}{'\n'}{end}")
+
+                echo "\$POD_LIST" | while IFS=: read -r ns pod; do
+                  if [ -n "\$pod" ]; then
+                    echo "⛔ Eliminando pod '\$pod' en el namespace '\$ns'..."
+                    kubectl delete pod "\$pod" -n "\$ns" --grace-period=0 --force || true
+                  fi
+                done
+
+                sleep 30
+
+                REMAINING=$(kubectl get pods --all-namespaces --field-selector spec.nodeName=\$NODE --no-headers | wc -l)
+                if [ "\$REMAINING" -gt 0 ]; then
+                  echo "⚠️ Quedan \$REMAINING pods en \$NODE. Ejecutando 'drain'..."
+                  kubectl drain \$NODE --ignore-daemonsets --force --delete-emptydir-data || true
+                else
+                  echo "✅ Nodo \$NODE limpio."
+                fi
+              done
+            }
+
+            while [ "\$COUNT" -le "\$MAX_RETRIES" ]; do
+              echo "🧨 Intento \$COUNT de eliminación del cluster..."
+
+              if timeout "\$TIME_LIMIT" eksctl delete cluster --name "\$CLUSTER_NAME" --region "\$REGION"; then
+                echo "✅ Cluster eliminado exitosamente tras \$COUNT intento(s)."
+                exit 0
+              else
+                echo "❌ Intento \$COUNT fallido o sin respuesta en \$TIME_LIMIT segundos."
+                COUNT=\$((COUNT + 1))
+                clean_nodes
+                echo "🔁 Reintentando..."
+              fi
+            done
+
+            echo "🚫 Se alcanzó el máximo de reintentos (\$MAX_RETRIES). Abortando."
+            exit 1
+          EOF
