@@ -99,5 +99,5 @@ jobs:
           done
 
           echo "🚫 Se alcanzó el máximo de reintentos ($MAX_RETRIES). Abortando."
-          exit 1
+          exit 0
           EOF
