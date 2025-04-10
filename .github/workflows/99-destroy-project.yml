@@ -66,7 +66,8 @@ jobs:
               for NODE in \$NODOS; do
                 echo "🧹 Procesando nodo: \$NODE"
 
-                POD_LIST=$(kubectl get pods --all-namespaces --field-selector spec.nodeName=\$NODE -o jsonpath="{range .items[*]}{.metadata.namespace}:{.metadata.name}{'\n'}{end}")
+                # Se ha removido la parte que causaba error ({'\n'})
+                POD_LIST=$(kubectl get pods --all-namespaces --field-selector spec.nodeName=\$NODE -o jsonpath="{range .items[*]}{.metadata.namespace}:{.metadata.name}{end}")
 
                 echo "\$POD_LIST" | while IFS=: read -r ns pod; do
                   if [ -n "\$pod" ]; then
