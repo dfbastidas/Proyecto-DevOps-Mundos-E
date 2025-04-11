@@ -43,3 +43,4 @@ terraform.rc
 # ssh keys
 *.key
 *.pub
+./remote-host-control
