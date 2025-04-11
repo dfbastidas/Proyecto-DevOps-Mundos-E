@@ -58,16 +58,16 @@ jobs:
           TIME_LIMIT=300
 
           function clean_nodes() {
-            echo "🔍 Iteración $COUNT — limpiando nodos con pods en el cluster..."
+            echo "Iteración $COUNT — limpiando nodos con pods en el cluster..."
             NODOS=$(kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.spec.nodeName != null) | .spec.nodeName' | sort -u)
 
             for NODE in $NODOS; do
-              echo "🧹 Procesando nodo: $NODE"
+              echo "Procesando nodo: $NODE"
               POD_LIST=$(kubectl get pods --all-namespaces --field-selector spec.nodeName=$NODE -o jsonpath="{range .items[*]}{.metadata.namespace}:{.metadata.name}{'\n'}{end}")
 
               echo "$POD_LIST" | while IFS=: read -r ns pod; do
                 if [ -n "$pod" ]; then
-                  echo "⛔ Eliminando pod '$pod' en el namespace '$ns'..."
+                  echo "Eliminando pod '$pod' en el namespace '$ns'..."
                   kubectl delete pod "$pod" -n "$ns" --grace-period=0 --force || true
                 fi
               done
@@ -76,28 +76,28 @@ jobs:
 
               REMAINING=$(kubectl get pods --all-namespaces --field-selector spec.nodeName=$NODE --no-headers | wc -l)
               if [ "$REMAINING" -gt 0 ]; then
-                echo "⚠️ Quedan $REMAINING pods en $NODE. Ejecutando 'drain'..."
+                echo "Quedan $REMAINING pods en $NODE. Ejecutando 'drain'..."
                 kubectl drain $NODE --ignore-daemonsets --force --delete-emptydir-data || true
               else
-                echo "✅ Nodo $NODE limpio."
+                echo "Nodo $NODE limpio."
               fi
             done
           }
 
           while [ "$COUNT" -le "$MAX_RETRIES" ]; do
-            echo "🧨 Intento $COUNT de eliminación del cluster..."
+            echo "Intento $COUNT de eliminación del cluster..."
 
             if timeout "$TIME_LIMIT" eksctl delete cluster --name "$CLUSTER_NAME" --region "$REGION"; then
-              echo "✅ Cluster eliminado exitosamente tras $COUNT intento(s)."
+              echo "Cluster eliminado exitosamente tras $COUNT intento(s)."
               exit 0  # Forzamos exit code 0 aquí
             else
-              echo "❌ Intento $COUNT fallido o sin respuesta en $TIME_LIMIT segundos."
+              echo "Intento $COUNT fallido o sin respuesta en $TIME_LIMIT segundos."
               COUNT=$((COUNT + 1))
               clean_nodes
-              echo "🔁 Reintentando..."
+              echo "Reintentando..."
             fi
           done
 
-          echo "🚫 Se alcanzó el máximo de reintentos ($MAX_RETRIES). Abortando."
+          echo "Se alcanzó el máximo de reintentos ($MAX_RETRIES). Abortando."
           exit 0
           EOF
